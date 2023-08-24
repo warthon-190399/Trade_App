@@ -1,0 +1,164 @@
+import streamlit as st
+import yfinance as yf
+import pandas as pd
+import datetime
+import matplotlib.pyplot as plt
+import mplfinance as mpf
+import ta
+
+
+plt.style.use("dark_background")
+
+
+###########################
+#### Funciones Principales
+###########################
+
+def get_data(stock, start_time, end_time):
+    data = yf.download(stock, start=start_time, end=end_time)
+    return data
+
+
+def plot_price(data):
+    fig = plt.figure(figsize=(10, 6))
+    plt.plot(data.index, data['Close'], color='dodgerblue', linewidth=1)
+    plt.ylabel('Precio USD')
+    plt.xticks(rotation=45, ha='right')
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    plt.grid(True, color='gray', linestyle='-', linewidth=0.2)
+    return fig
+
+
+def plot_sma(data):
+    fig = plt.figure(figsize=(10, 3))
+    sma = ta.trend.sma_indicator(data['Close'], window=20)
+    plt.plot(data.index, sma, color='orange', linewidth=1)
+    plt.ylabel('SMA')
+    plt.xticks(rotation=45, ha='right')
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    plt.grid(True, color='gray', linestyle='-', linewidth=0.2)
+    return fig
+
+
+def plot_bollinger_bands(data):
+    fig = plt.figure(figsize=(10, 3))
+    bb = ta.volatility.BollingerBands(data['Close'], window=20)
+    plt.plot(data.index, bb.bollinger_mavg(), color='yellow', linewidth=1)
+    plt.fill_between(data.index, bb.bollinger_hband(), bb.bollinger_lband(), color='lightgray', alpha=0.3)
+    plt.ylabel('Bollinger Bands')
+    plt.xticks(rotation=45, ha='right')
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    plt.grid(True, color='gray', linestyle='-', linewidth=0.2)
+    return fig
+
+
+def plot_stochastic_oscillator(data):
+    fig = plt.figure(figsize=(10, 3))
+    so = ta.momentum.StochasticOscillator(data['High'], data['Low'], data['Close'])
+    plt.plot(data.index, so.stoch(), color='purple', linewidth=1)
+    plt.axhline(y=20, color='red', linestyle='--')
+    plt.axhline(y=80, color='red', linestyle='--')
+    plt.ylabel('Oscilador Estocástico')
+    plt.xticks(rotation=45, ha='right')
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    plt.grid(True, color='gray', linestyle='-', linewidth=0.2)
+    return fig
+
+
+def plot_rsi(data):
+    fig = plt.figure(figsize=(10, 3))
+    rsi = ta.momentum.RSIIndicator(data['Close'])
+    plt.plot(data.index, rsi.rsi(), color='green', linewidth=1)
+    plt.axhline(y=30, color='red', linestyle='--')
+    plt.axhline(y=70, color='red', linestyle='--')
+    plt.ylabel('RSI')
+    plt.xticks(rotation=45, ha='right')
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    plt.grid(True, color='gray', linestyle='-', linewidth=0.2)
+    return fig
+
+
+def plot_macd(data):
+    fig = plt.figure(figsize=(10, 3))
+    macd = ta.trend.MACD(data['Close'])
+    plt.plot(data.index, macd.macd(), color='cyan', linewidth=1)
+    plt.plot(data.index, macd.macd_signal(), color='magenta', linewidth=1)
+    plt.bar(data.index, macd.macd_diff(), color='gray', alpha=0.5)
+    plt.ylabel('MACD')
+    plt.xticks(rotation=45, ha='right')
+    ax = plt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    plt.grid(True, color='gray', linestyle='-', linewidth=0.2)
+    return fig
+
+
+###########################
+#### LAYOUT - Sidebar
+###########################
+
+with st.sidebar:
+    stock = st.selectbox('Ticker', ['NVDA', 'TSLA', 'MSFT', 'AMZN', 'INTC', 'AMD', 'JNJ', 'BABA', 'GOOGL', 'QCOM'], index=1)
+    start_time = st.date_input("Fecha de Inicio", datetime.date(2019, 7, 6))
+    end_time = st.date_input("Fecha Final", datetime.date(2022, 10, 6))
+    indicators = st.multiselect('Indicadores', ['SMA', 'Bandas de Bollinger', 'Oscilador Estocástico', 'RSI', 'MACD'])
+
+
+###########################
+#### DATA - Funciones sobre inputs
+###########################
+
+data = get_data(stock, start_time, end_time)
+
+
+###########################
+#### LAYOUT - Render Final
+###########################
+
+st.title("Análisis de Acciones")
+
+st.subheader('Precio de Cierre')
+plot_fig = plot_price(data)
+st.pyplot(plot_fig)
+
+for indicator in indicators:
+    if indicator == 'SMA':
+        st.subheader('SMA (Simple Moving Average)')
+        sma_fig = plot_sma(data)
+        st.pyplot(sma_fig)
+    elif indicator == 'Bandas de Bollinger':
+        st.subheader('Bandas de Bollinger')
+        bb_fig = plot_bollinger_bands(data)
+        st.pyplot(bb_fig)
+    elif indicator == 'Oscilador Estocástico':
+        st.subheader('Oscilador Estocástico')
+        so_fig = plot_stochastic_oscillator(data)
+        st.pyplot(so_fig)
+    elif indicator == 'RSI':
+        st.subheader('RSI (Relative Strength Index)')
+        rsi_fig = plot_rsi(data)
+        st.pyplot(rsi_fig)
+    elif indicator == 'MACD':
+        st.subheader('MACD (Moving Average Convergence Divergence)')
+        macd_fig = plot_macd(data)
+        st.pyplot(macd_fig)
+
+st.dataframe(data)
+
+#Run this at the terminal from your IDE: streamlit run code.py 
